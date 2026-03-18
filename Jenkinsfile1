@@ -14,15 +14,28 @@ pipeline {
         }
 
            stage('Build & Test') {
-        steps {
-            sh '''
-            python3 -m venv venv
-            ./venv/bin/python -m pip install --upgrade pip
-            ./venv/bin/python -m pip install -r requirements.txt || ./venv/bin/python -m pip install flask
-            ./venv/bin/python -m pytest || echo "No tests"
-            '''
-        }
+    steps {
+        sh '''
+        # Clean old environment (VERY IMPORTANT)
+        rm -rf venv
+
+        # Create fresh venv
+        python3 -m venv venv
+
+        # Fix pip using python (avoids noexec issue)
+        ./venv/bin/python -m ensurepip --upgrade
+
+        # Upgrade pip cleanly
+        ./venv/bin/python -m pip install --upgrade pip
+
+        # Install dependencies
+        ./venv/bin/python -m pip install -r requirements.txt || ./venv/bin/python -m pip install flask
+
+        # Run tests
+        ./venv/bin/python -m pytest || echo "No tests"
+        '''
     }
+}
 
         stage('Deploy to EC2') {
             steps {
