@@ -44,7 +44,7 @@ pipeline {
                     keyFileVariable: 'SSH_KEY'
                 )]) {
                     sh '''
-                    ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$SERVER_IP << EOF
+                    ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$SERVER_IP "
 
                     cd /home/ubuntu
 
@@ -69,7 +69,7 @@ pipeline {
                     # Restart app
                     sudo systemctl restart flaskapp
 
-                    EOF
+                    "
                     '''
                 }
             }
