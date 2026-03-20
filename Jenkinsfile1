@@ -21,14 +21,13 @@ pipeline {
             }
         }
 
-        stage('Deployment') {
-            input {
-                message "Do you want to proceed further?"
-                ok "Yes"
-            }
-            steps {
-                echo "Running Deployment"
-            }
+       stage('Deployment') {
+    steps {
+        input message: "Do you want to proceed further?", ok: "Yes"
+        echo "Running Deployment"
+    }
+}
+          
         } 
     }
 }
