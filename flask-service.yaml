@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flaskapp
+  labels:
+    name: myflask
+spec:
+  selector:
+    name: myflask
+  type: NodePort
+  ports:
+  - targetPort: 5000
+    port: 80
+    nodePort: 30050
+
