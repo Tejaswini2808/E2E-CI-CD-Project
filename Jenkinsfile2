@@ -68,6 +68,7 @@ pipeline {
                 git commit -m "Updated image" || echo "No changes"
             
                 git push origin HEAD:main
+                git pull origin HEAD:main
                 '''
             }
             }
