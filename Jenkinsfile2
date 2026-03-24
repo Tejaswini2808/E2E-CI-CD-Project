@@ -48,7 +48,7 @@ pipeline {
                 echo "Docker Image push successfully"
             }
         } 
-
+        
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
@@ -59,7 +59,18 @@ pipeline {
                 }
             }
         }
-
+           stage('Push changes to Github){
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'github-creds', passwordVariable: 'git-pass', usernameVariable: 'git-user')]) {
+                    sh '''
+                    git add flask-deployment.yaml        #add changes
+                    git commit -m "Update image to $DOCKER_IMAGE:$TAG"
+                    git push https://$git-user:$git-pass@github.com/Tejaswini2808/Jenkins-Project.git HEAD:main
+                '''
+                }
+            }
+        }
+    
         stage('Verify Deployment') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
