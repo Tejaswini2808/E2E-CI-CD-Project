@@ -17,6 +17,6 @@ spec:
     spec:
       containers:
       - name: myflaskapp
-        image: tejaswini2808/myflaskapp:16
+        image: tejaswini2808/myflaskapp:17
         ports:
         - containerPort: 5000
