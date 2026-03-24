@@ -3,11 +3,8 @@ pipeline {
 
     environment {
          DOCKER_IMAGE = "tejaswini2808/myflaskapp"
-         TAG = "${BUILD_NUMBER}"
-        
+         TAG = "${BUILD_NUMBER}"  
     }
-
-    
     stages {
 
         stage('Setup') {
@@ -20,35 +17,27 @@ pipeline {
                 sh "./venv/bin/python -m pytest"
             }
         }
-
         stage('Login to docker hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                sh 'echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin'}
+                sh 'echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin'
+                }
                 echo 'Login successfully'
             }
         }
-
-        stage('Build Docker Image')
-        {
-            steps
-            {
+        stage('Build Docker Image') {
+            steps {
                 sh 'docker build -t ${DOCKER_IMAGE}:${TAG} .'
                 echo "Docker image build successfully"
                 sh 'docker image ls'
-                
             }
         }
-
-        stage('Push Docker Image')
-        {
-            steps
-            {
+        stage('Push Docker Image') {
+            steps {
                 sh 'docker push ${DOCKER_IMAGE}:${TAG}'
                 echo "Docker Image push successfully"
             }
-        } 
-        
+        }  
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
@@ -59,8 +48,8 @@ pipeline {
                 }
             }
         }
-           stage('Push changes to Github){
-            steps{
+        stage('Push changes to Github') {
+            steps {
                 withCredentials([usernamePassword(credentialsId: 'github-creds', passwordVariable: 'git-pass', usernameVariable: 'git-user')]) {
                     sh '''
                     git add flask-deployment.yaml        #add changes
@@ -70,7 +59,6 @@ pipeline {
                 }
             }
         }
-    
         stage('Verify Deployment') {
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
