@@ -2,76 +2,74 @@ pipeline {
     agent any
 
     environment {
-        SERVER_IP= credentials('ec2-server')
+         DOCKER_IMAGE = "tejaswini2808/myflaskapp"
+         TAG = "${BUILD_NUMBER}"  
     }
-
     stages {
 
-        stage('SCM Checkout') {
+        stage('Setup') {
             steps {
-                git url: 'https://github.com/Tejaswini2808/Jenkins-Project.git', branch: 'main'
+                sh "./venv/bin/python -m pip install -r requirements.txt"
             }
         }
-
-           stage('Build & Test') {
-    steps {
-        sh '''
-        # Clean old environment (VERY IMPORTANT)
-        rm -rf venv
-
-        # Create fresh venv
-        python3 -m venv venv
-
-        # Fix pip using python (avoids noexec issue)
-        ./venv/bin/python -m ensurepip --upgrade
-
-        # Upgrade pip cleanly
-        ./venv/bin/python -m pip install --upgrade pip
-
-        # Install dependencies
-        ./venv/bin/python -m pip install -r requirements.txt || ./venv/bin/python -m pip install flask
-
-        # Run tests
-        ./venv/bin/python -m pytest || echo "No tests"
-        '''
-    }
-}
-
-        stage('Deploy to EC2') {
+        stage('Test') {
             steps {
-                withCredentials([sshUserPrivateKey(
-                    credentialsId: 'ssh-key',
-                    keyFileVariable: 'SSH_KEY'
-                )]) {
+                sh "./venv/bin/python -m pytest"
+            }
+        }
+        stage('Login to docker hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                sh 'echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin'
+                }
+                echo 'Login successfully'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t ${DOCKER_IMAGE}:${TAG} .'
+                echo "Docker image build successfully"
+                sh 'docker image ls'
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                sh 'docker push ${DOCKER_IMAGE}:${TAG}'
+                echo "Docker Image push successfully"
+            }
+        }  
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     sh '''
-                    ssh -o StrictHostKeyChecking=no -i $SSH_KEY ubuntu@$SERVER_IP "
-
-                    cd /home/ubuntu
-
-                    # Clone if not exists
-                    if [ ! -d "Jenkins-Project" ]; then
-                        git clone https://github.com/Tejaswini2808/Jenkins-Project.git
-                    fi
-
-                    cd Jenkins-Project
-                    git pull origin main
-
-                    # Create venv if not exists
-                    if [ ! -d "venv" ]; then
-                        python3 -m venv venv
-                    fi
-
-                    # Install dependencies INSIDE EC2
-                    /home/ubuntu/Jenkins-Project/venv/bin/pip install --upgrade pip
-                    /home/ubuntu/Jenkins-Project/venv/bin/pip install -r requirements.txt || \
-                    /home/ubuntu/Jenkins-Project/venv/bin/pip install flask
-
-                    # Restart app
-                    sudo systemctl restart flaskapp
-
-                    "
+                       sed -i "s|image:.*|image: $DOCKER_IMAGE:$TAG|g" flask-deployment.yaml
+                       kubectl apply -f flask-deployment.yaml
                     '''
                 }
+            }
+        }
+        stage('Verify Deployment') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    kubectl rollout status deployment/flaskapp-deployment
+                    '''
+                }
+            }
+        }
+         stage('Push changes to Github') {
+            steps {
+               withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                sh '''
+                echo '$USER'
+                git remote set-url origin https://$USER:$PASS@github.com/Tejaswini2808/Jenkins-Project.git
+            
+                git add flask-deployment.yaml
+                git commit -m "Updated image" || echo "No changes"
+            
+                git push origin HEAD:main
+                '''
+            }
             }
         }
     }
