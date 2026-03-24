@@ -13,7 +13,6 @@ pipeline {
         }
         stage('Test') {
             steps {
-<<<<<<< HEAD
                 sh '''
                     ./venv/bin/python -m pytest
                 '''
@@ -24,50 +23,5 @@ pipeline {
                echo "Running Deployment"
            }    
        }
-=======
-                sh "./venv/bin/python -m pytest"
-            }
-        }
-        stage('Login to docker hub') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                sh 'echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin'
-                }
-                echo 'Login successfully'
-            }
-        }
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t ${DOCKER_IMAGE}:v1.${TAG} .'
-                echo "Docker image build successfully"
-                sh 'docker image ls'
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
-                sh 'docker push ${DOCKER_IMAGE}:v1.${TAG}'
-                echo "Docker Image push successfully"
-            }
-        }  
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh '''
-                       sed -i "s|image:.*|image: $DOCKER_IMAGE:v1.$TAG|g" flask-deployment.yaml
-                       kubectl apply -f flask-deployment.yaml
-                    '''
-                }
-            }
-        }
-        stage('Verify Deployment') {
-            steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh '''
-                    kubectl rollout status deployment/flaskapp-deployment
-                    '''
-                }
-            }
-        }
->>>>>>> f2e8cfd24a904713739c358d9bab6da96ff50ed9
     }
 }
