@@ -57,20 +57,5 @@ pipeline {
                 }
             }
         }
-         stage('Push changes to Github') {
-            steps {
-               withCredentials([usernamePassword(credentialsId: 'github-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-                sh '''
-                echo '$USER'
-                git remote set-url origin https://$USER:$PASS@github.com/Tejaswini2808/Jenkins-Project.git
-            
-                git add flask-deployment.yaml
-                git commit -m "Updated image" || echo "No changes"
-            
-                git push origin HEAD:main
-                '''
-            }
-            }
-        }
     }
 }
