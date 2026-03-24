@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'tejaswini2808/flaskapp'
-        IMAGE_TAG = "${IMAGE_NAME}:${env.GIT_COMMIT}"
+         DOCKER_IMAGE = "tejaswini2808/myflaskapp"
+         TAG = "${BUILD_NUMBER}"
         
     }
 
@@ -33,7 +33,7 @@ pipeline {
         {
             steps
             {
-                sh 'docker build -t ${IMAGE_TAG} .'
+                sh 'docker build -t ${DOCKER_IMAGE}:${TAG} .'
                 echo "Docker image build successfully"
                 sh 'docker image ls'
                 
@@ -44,9 +44,31 @@ pipeline {
         {
             steps
             {
-                sh 'docker push ${IMAGE_TAG}'
-                echo "Docker image push successfully"
+                sh 'docker push ${DOCKER_IMAGE}:${TAG}'
+                echo "Docker Image push successfully"
             }
-        }      
+        } 
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                       sed -i "s|image:.*|image: $DOCKER_IMAGE:$TAG|g" flask-deployment.yaml
+                       kubectl apply -f flask-deployment.yaml
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    kubectl rollout status deployment/flaskapp-deployment
+                    '''
+                }
+            }
+        }
+
     }
 }
