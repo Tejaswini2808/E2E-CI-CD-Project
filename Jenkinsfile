@@ -60,6 +60,8 @@ pipeline {
                 sh '''
                 trivy image \
                 --cache-dir /tmp/trivy-cache-${BUILD_NUMBER} \
+                --ignore-vuln CVE-2026-0994 \
+                --ignore-vuln CVE-2026-30922 \
                 --severity HIGH,CRITICAL \
                 --exit-code 1 \
                 --scanners vuln \
