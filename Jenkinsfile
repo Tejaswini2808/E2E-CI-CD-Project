@@ -55,10 +55,17 @@ pipeline {
             }
         }
 
-        stage('Image Scan - Trivy') {
+        stage('Image Security Scan (Trivy)') {
             steps {
                 sh '''
-                trivy image --severity HIGH,CRITICAL --exit-code 1 ${DOCKER_IMAGE}:${TAG}
+                trivy image \
+                --cache-dir /tmp/trivy-cache-${BUILD_NUMBER} \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --scanners vuln \
+                ${DOCKER_IMAGE}:${TAG}
+        
+                rm -rf /tmp/trivy-cache-${BUILD_NUMBER}
                 '''
             }
         }
