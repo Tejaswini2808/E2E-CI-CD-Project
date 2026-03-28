@@ -6,7 +6,22 @@ pipeline {
          TAG = "v1.${BUILD_NUMBER}"  
     }
     stages {
-
+         stage('Code Security Scan') {
+            steps {
+                sh '''
+                ./venv/bin/python -m pip install bandit
+                bandit -r . -ll
+                '''
+            }
+        }
+        stage('Dependency Scan') {
+            steps {
+                sh '''
+                ./venv/bin/python -m pip install pip-audit
+                pip-audit
+                '''
+            }
+        }
         stage('Setup') {
             steps {
                 sh "./venv/bin/python -m pip install -r requirements.txt"
@@ -30,6 +45,14 @@ pipeline {
                 sh 'docker build -t ${DOCKER_IMAGE}:${TAG} .'
                 echo "Docker image build successfully"
                 sh 'docker image ls'
+            }
+        }
+        stage('Image Security Scan (Trivy)') {
+            steps {
+                sh '''
+                trivy image --severity HIGH,CRITICAL --exit-code 1 $DOCKER_IMAGE:$TAG
+                trivy image -f html -o report.html $DOCKER_IMAGE:$TAG
+                '''
             }
         }
         stage('Push Docker Image') {
@@ -56,7 +79,17 @@ pipeline {
                     '''
                 }
             }
+        }   
+    }
+    post {
+        always {
+            echo "Pipeline completed"
         }
-        
+        success {
+            echo "Deployment successful 🚀"
+        }
+        failure {
+            echo "Pipeline failed ❌"
+        }
     }
 }
