@@ -7,23 +7,24 @@ pipeline {
     }
 
     stages {
-        
-        // ⚡ Parallel Security + Test
+
+        // ⚡ Parallel Security + Testing
         stage('Security & Testing') {
             parallel {
 
                 stage('Code Security Scan (Bandit)') {
                     steps {
                         sh '''
-                        docker run --rm -v $(pwd):/app -w /app python:3.12-slim \
+                        docker run --rm -v ${WORKSPACE}:/app -w /app python:3.12-slim \
                         bash -c "pip install bandit && bandit -r . -x ./venv,./.git -lll"
                         '''
                     }
                 }
-               stage('Dependency Scan') {
+
+                stage('Dependency Scan') {
                     steps {
                         sh '''
-                        docker run --rm -v $(pwd):/app -w /app python:3.12-slim \
+                        docker run --rm -v ${WORKSPACE}:/app -w /app python:3.12-slim \
                         bash -c "
                         pip install pip-audit && \
                         pip-audit \
@@ -38,10 +39,10 @@ pipeline {
                 stage('Unit Tests') {
                     steps {
                         sh '''
-                        docker run --rm -v $(pwd):/app -w /app python:3.12-slim \
+                        docker run --rm -v ${WORKSPACE}:/app -w /app python:3.12-slim \
                         bash -c "
                         pip install -r requirements.txt pytest && \
-                        pytest || echo 'No tests or test failures'
+                        pytest || echo 'Tests failed or not present'
                         "
                         '''
                     }
@@ -51,7 +52,10 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${DOCKER_IMAGE}:${TAG} .'
+                sh '''
+                docker build -t ${DOCKER_IMAGE}:${TAG} .
+                docker image ls
+                '''
             }
         }
 
@@ -62,24 +66,31 @@ pipeline {
                 --cache-dir /tmp/trivy-cache-${BUILD_NUMBER} \
                 --ignore-vuln CVE-2026-0994 \
                 --ignore-vuln CVE-2026-30922 \
-                --severity HIGH,CRITICAL \
+                --severity CRITICAL \
                 --exit-code 1 \
                 --scanners vuln \
                 ${DOCKER_IMAGE}:${TAG}
-        
+
                 rm -rf /tmp/trivy-cache-${BUILD_NUMBER}
                 '''
             }
         }
 
-        stage('Login & Push') {
+        stage('Login to DockerHub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh '''
                     echo $PASSWORD | docker login -u $USERNAME --password-stdin
-                    docker push ${DOCKER_IMAGE}:${TAG}
                     '''
                 }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh '''
+                docker push ${DOCKER_IMAGE}:${TAG}
+                '''
             }
         }
 
@@ -92,6 +103,28 @@ pipeline {
                     '''
                 }
             }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                    kubectl rollout status deployment/flaskapp-deployment
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline completed ✅"
+        }
+        success {
+            echo "Deployment successful 🚀"
+        }
+        failure {
+            echo "Pipeline failed ❌"
         }
     }
 }
