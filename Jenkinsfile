@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                 ./venv/bin/python -m pip install pip-audit
-                ./venv/bin/python -m pip-audit
+                ./venv/bin/pip-audit --strict
                 '''
             }
         }
