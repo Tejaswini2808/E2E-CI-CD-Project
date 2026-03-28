@@ -62,14 +62,12 @@ pipeline {
         stage('Image Security Scan (Trivy)') {
             steps {
                 sh '''
-                trivy image \
-                --cache-dir /tmp/trivy-cache-${BUILD_NUMBER} \
-                --severity CRITICAL \
-                --exit-code 1 \
-                --scanners vuln \
-                 --ignore-unfixed CVE-2026-0994 \
-                --ignore-unfixed CVE-2026-30922 \
-                ${DOCKER_IMAGE}:${TAG}
+                    trivy image \
+                    --cache-dir /tmp/trivy-cache-${BUILD_NUMBER} \
+                    --severity CRITICAL \
+                    --exit-code 1 \
+                    --scanners vuln \
+                    ${DOCKER_IMAGE}:${TAG}
 
                 rm -rf /tmp/trivy-cache-${BUILD_NUMBER}
                 '''
