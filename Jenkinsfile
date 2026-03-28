@@ -64,11 +64,11 @@ pipeline {
                 sh '''
                 trivy image \
                 --cache-dir /tmp/trivy-cache-${BUILD_NUMBER} \
-                --ignore-vuln CVE-2026-0994 \
-                --ignore-vuln CVE-2026-30922 \
                 --severity CRITICAL \
                 --exit-code 1 \
                 --scanners vuln \
+                 --ignore-vuln CVE-2026-0994 \
+                --ignore-vuln CVE-2026-30922 \
                 ${DOCKER_IMAGE}:${TAG}
 
                 rm -rf /tmp/trivy-cache-${BUILD_NUMBER}
