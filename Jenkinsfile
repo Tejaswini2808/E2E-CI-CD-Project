@@ -9,6 +9,7 @@ pipeline {
          stage('Code Security Scan') {
             steps {
                 sh '''
+                ./venv/bin/python -m pip install --upgrade pip
                 ./venv/bin/python -m pip install bandit
                ./venv/bin/bandit -r . -x ./venv,./.git -lll
                 '''
