@@ -1,4 +1,4 @@
-#!/home/ubuntu/Jenkins-Project/venv/bin/python3
+#!/home/ubuntu/E2E-CI-CD-Project/venv/bin/python
 import sys
 from tqdm.cli import main
 if __name__ == '__main__':
