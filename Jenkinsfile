@@ -12,15 +12,14 @@ pipeline {
         stage('Security & Testing') {
             parallel {
 
-                stage('SAST - Bandit') {
+                stage('Code Security Scan (Bandit)') {
                     steps {
                         sh '''
                         docker run --rm -v $(pwd):/app -w /app python:3.12-slim \
-                        bash -c "pip install bandit && bandit -r . -lll"
+                        bash -c "pip install bandit && bandit -r . -x ./venv,./.git -lll"
                         '''
                     }
                 }
-
                 stage('Dependency Scan') {
                     steps {
                         sh '''
