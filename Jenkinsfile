@@ -10,7 +10,7 @@ pipeline {
             steps {
                 sh '''
                 ./venv/bin/python -m pip install bandit
-                bandit -r . -ll
+                ./venv/bin/python -m bandit -r . -ll
                 '''
             }
         }
@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                 ./venv/bin/python -m pip install pip-audit
-                pip-audit
+                ./venv/bin/python -m pip-audit
                 '''
             }
         }
